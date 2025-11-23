@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Kel 7 - Digital Entrepreneurship</title>
+  <style>
+    :root {
+      --bg:#0f1724; --card:#0b1220; --accent:#06b6d4; --muted:#94a3b8;
+      --yes:#10b981; --no:#ef4444;
+    }
+    body{margin:0;background:#0b1220;font-family:Inter,system-ui;color:white;}
+    .wrapper{max-width:900px;margin:auto;padding:20px;}
+
+    .carousel{aspect-ratio:16/9;width:100%;border-radius:12px;overflow:hidden;position:relative;background:#0b1630;margin-bottom:18px;}
+    .slide{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:20px;font-size:26px;font-weight:700;color:white;transition:opacity .4s, transform .4s;}
+    .slide.hidden{opacity:0;transform:translateY(20px);pointer-events:none;}
+
+    .controls{position:absolute;bottom:10px;right:10px;display:flex;gap:6px;}
+    .dot{width:10px;height:10px;border-radius:10px;background:rgba(255,255,255,.3);} 
+    .dot.active{background:var(--accent);} 
+
+    .navBtn{position:absolute;top:50%;transform:translateY(-50%);background:rgba(0,0,0,0.4);border:0;color:white;font-size:26px;width:44px;height:60px;display:grid;place-items:center;border-radius:6px;cursor:pointer;} 
+    .navBtn:hover{background:rgba(0,0,0,0.6);} 
+    #prevBtn{left:10px;} #nextBtn{right:10px;}
+
+    .skip{position:absolute;left:10px;bottom:10px;font-size:13px;color:#aaa;}
+
+    .response-box{margin-top:30px;padding:16px;border-radius:12px;background:rgba(255,255,255,0.05);} 
+    .cta-row{display:flex;gap:12px;margin-top:12px;}
+    button.btn{flex:1;padding:14px;border-radius:10px;border:0;font-weight:700;color:white;cursor:pointer;} 
+    .yes{background:linear-gradient(90deg,var(--yes),#059669);} 
+    .no{background:linear-gradient(90deg,var(--no),#dc2626);} 
+    .log{margin-top:18px;max-height:220px;overflow:auto;padding:8px;background:rgba(255,255,255,0.04);border-radius:8px;font-family:monospace;font-size:13px;color:var(--muted);} 
+  </style>
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="carousel" id="carousel">
+
+    <div class="slide" id="slide0">
+      <img src="img/iklan1.jpg" style="width:100%;height:100%;object-fit:cover;" />
+    </div>
+    <div class="slide hidden" id="slide1">
+      <img src="img/iklan2.jpg" style="width:100%;height:100%;object-fit:cover;" />
+    </div>
+    <div class="slide hidden" id="slide2">
+      <img src="img/iklan3.jpg" style="width:100%;height:100%;object-fit:cover;" />
+    </div>
+
+    <button class="navBtn" id="prevBtn">❮</button>
+    <button class="navBtn" id="nextBtn">❯</button>
+
+    <div class="controls">
+      <div class="dot" id="dot0"></div>
+      <div class="dot" id="dot1"></div>
+      <div class="dot" id="dot2"></div>
+    </div>
+
+    <div class="skip" id="skip">Tekan Space = Play / Pause</div>
+  </div>
+
+  <div class="response-box" id="responseBox">
+    <h3>Berikan Respons Anda</h3>
+    <p>Pilih Yes / No untuk menilai iklan di atas.</p>
+
+    <div class="cta-row">
+      <button class="btn yes" id="btnYes">Yes</button>
+      <button class="btn no" id="btnNo">No</button>
+    </div>
+
+    <div class="log" id="log">Memuat riwayat...</div>
+  </div>
+</div>
+
+<script>
+
+function getDeviceName() {
+  const ua = navigator.userAgent;
+  if (/android/i.test(ua)) return "Android";
+  if (/iPhone|iPad|iPod/i.test(ua)) return "iOS";
+  if (/Windows NT/i.test(ua)) return "Windows PC";
+  if (/Macintosh/i.test(ua)) return "Mac";
+  if (/Linux/i.test(ua)) return "Linux";
+  return "Unknown";
+}
+
+const slides=[slide0,slide1,slide2];
+const dots=[dot0,dot1,dot2];
+let idx=0;
+let playing=true;
+
+function show(i){
+  slides.forEach((s,n)=> s.classList.toggle('hidden',n!==i));
+  dots.forEach((d,n)=> d.classList.toggle('active',n===i));
+  idx=i;
+}
+
+function next(){ show((idx+1)%slides.length); }
+function prev(){ show((idx-1+slides.length)%slides.length); }
+let auto=setInterval(()=>{ if(playing) next(); },3500);
+
+nextBtn.onclick=()=>{ playing=false; next(); skip.textContent='Paused — Tekan Space untuk play'; }
+prevBtn.onclick=()=>{ playing=false; prev(); skip.textContent='Paused — Tekan Space untuk play'; }
+dots.forEach((d,i)=> d.onclick=()=>{ playing=false; show(i); skip.textContent='Paused — Tekan Space untuk play'; });
+
+addEventListener('keydown',e=>{
+  if(e.code==='Space'){
+    e.preventDefault();
+    playing=!playing;
+    skip.textContent=playing?'Tekan Space = Play / Pause':'Paused — Tekan Space untuk play';
+  }
+});
+
+const logEl=document.getElementById('log');
+const key='resp_scroll_v2';
+function load(){ let arr=JSON.parse(localStorage.getItem(key)||'[]'); render(arr);} 
+function push(resp){ let arr=JSON.parse(localStorage.getItem(key)||'[]'); arr.unshift({resp,ad:idx,time:new Date().toLocaleString()}); localStorage.setItem(key,JSON.stringify(arr)); render(arr);} 
+function render(arr){ logEl.innerHTML=arr.length?arr.map(r=>`<div>[${r.time}] Ad#${r.ad} — ${r.resp}</div>`).join(''):'Belum ada respons.';} 
+load();
+
+async function sendResponseToSheetDB(responseType) {
+  const url = "https://sheetdb.io/api/v1/zyxm2n6642erg";
+
+  const payload = {
+    data: {
+      TIMESTAMP: new Date().toISOString(),
+      RESPONSES: responseType,
+      DEVICE: getDeviceName()
+    }
+  };
+
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+    console.log("Data terkirim:", await res.json());
+  } catch (err) {
+    console.error("Error kirim ke SheetDB:", err);
+  }
+}
+
+btnYes.onclick = () => {
+  push("YES");
+  sendResponseToSheetDB("YES");
+};
+
+btnNo.onclick = () => {
+  push("NO");
+  sendResponseToSheetDB("NO");
+};
+</script>
+
+</body>
+</html>
